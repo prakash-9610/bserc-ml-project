@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# Large datasets
+data/*.csv
+
+# Trained ML models
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.keras
+models/*.pt
+models/*.pth
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

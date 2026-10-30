@@ -1,10 +1,8 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Virtual environments
+# Virtual environment
 venv/
 .venv/
 env/
@@ -13,16 +11,11 @@ env/
 .env
 .env.*
 
-# Large datasets
-data/*.csv
+# Large dataset
+data/globalterrorism.csv
 
-# Trained ML models
-models/*.pkl
-models/*.joblib
-models/*.h5
-models/*.keras
-models/*.pt
-models/*.pth
+# Large trained model
+models/attack_prediction_model.pkl
 
 # Jupyter
 .ipynb_checkpoints/

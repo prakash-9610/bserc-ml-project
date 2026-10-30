@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 
 # Virtual environment
 venv/
@@ -11,11 +12,8 @@ env/
 .env
 .env.*
 
-# Large dataset
+# Large uncompressed dataset (use data/globalterrorism.csv.zip for Git/Cloud deployment)
 data/globalterrorism.csv
-
-# Large trained model
-models/attack_prediction_model.pkl
 
 # Jupyter
 .ipynb_checkpoints/

@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-
 from sklearn.linear_model import LinearRegression
+from utils.data_loader import load_data
 
 # ----------------------------------------------------
 # Page Configuration
@@ -17,22 +17,12 @@ st.set_page_config(
 st.title("📈 Terrorism Attack Forecasting")
 
 st.markdown("""
-Forecast the future number of terrorist attacks using historical GTD data.
+Forecast future terrorist attack occurrences using historical trend extrapolation from the Global Terrorism Database.
 """)
 
-# ----------------------------------------------------
-# Load Dataset
-# ----------------------------------------------------
-@st.cache_data
-def load_data():
-    df = pd.read_csv(
-        "data/globalterrorism.csv",
-        encoding="latin1",
-        low_memory=False
-    )
-    return df
-
 df = load_data()
+if df is None:
+    st.stop()
 
 # ----------------------------------------------------
 # Sidebar Filters
@@ -47,10 +37,10 @@ country = st.sidebar.selectbox(
 )
 
 forecast_years = st.sidebar.slider(
-    "Forecast Years",
-    1,
-    10,
-    5
+    "Forecast Horizon (Years)",
+    min_value=1,
+    max_value=10,
+    value=5
 )
 
 # ----------------------------------------------------
@@ -71,7 +61,7 @@ yearly = yearly.sort_values("iyear")
 # Check data availability
 # ----------------------------------------------------
 if len(yearly) < 5:
-    st.warning("Not enough historical data for forecasting.")
+    st.warning(f"⚠️ Insufficient historical data for **{country}** to construct a reliable forecast (minimum 5 recorded years required).")
     st.stop()
 
 # ----------------------------------------------------
@@ -86,7 +76,7 @@ model.fit(X, y)
 # ----------------------------------------------------
 # Future Prediction
 # ----------------------------------------------------
-last_year = yearly["iyear"].max()
+last_year = int(yearly["iyear"].max())
 
 future_years = np.arange(
     last_year + 1,
@@ -98,7 +88,6 @@ future_df = pd.DataFrame({
 })
 
 predictions = model.predict(future_df)
-
 predictions = np.maximum(predictions, 0)
 
 forecast = pd.DataFrame({
@@ -116,7 +105,8 @@ fig.add_trace(
         x=yearly["iyear"],
         y=yearly["Attacks"],
         mode="lines+markers",
-        name="Historical"
+        name="Historical Observed",
+        line=dict(color="#1f77b4", width=2)
     )
 )
 
@@ -125,79 +115,78 @@ fig.add_trace(
         x=forecast["Year"],
         y=forecast["Forecasted Attacks"],
         mode="lines+markers",
-        name="Forecast"
+        name="Linear Forecast",
+        line=dict(color="#ff7f0e", width=2, dash="dash")
     )
 )
 
 fig.update_layout(
-    title=f"Attack Forecast for {country}",
+    title=f"Incident Trajectory & Forecast for {country}",
     xaxis_title="Year",
-    yaxis_title="Number of Attacks",
-    height=600
+    yaxis_title="Number of Incidents",
+    height=550,
+    hovermode="x unified"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 # ----------------------------------------------------
-# Forecast Table
+# Forecast Table & Analytics
 # ----------------------------------------------------
-st.subheader("Forecast Results")
+left_col, right_col = st.columns([1, 1])
 
-st.dataframe(
-    forecast,
-    use_container_width=True
-)
+with left_col:
+    st.subheader("📋 Forecast Projections")
+    st.dataframe(
+        forecast,
+        use_container_width=True,
+        hide_index=True
+    )
 
-# ----------------------------------------------------
-# Growth Analysis
-# ----------------------------------------------------
-historical_last = yearly.iloc[-1]["Attacks"]
-forecast_last = forecast.iloc[-1]["Forecasted Attacks"]
+with right_col:
+    st.subheader("📊 Growth Analysis")
 
-growth = (
-    (forecast_last - historical_last)
-    / max(historical_last, 1)
-) * 100
+    historical_last = yearly.iloc[-1]["Attacks"]
+    forecast_last = forecast.iloc[-1]["Forecasted Attacks"]
 
-st.subheader("Growth Analysis")
+    growth = (
+        (forecast_last - historical_last)
+        / max(historical_last, 1)
+    ) * 100
 
-col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-col1.metric(
-    "Current Attacks",
-    int(historical_last)
-)
+    col1.metric(
+        "Latest Actual",
+        int(historical_last)
+    )
 
-col2.metric(
-    f"Forecast ({forecast_years} Years)",
-    int(forecast_last)
-)
+    col2.metric(
+        f"Forecast (+{forecast_years} yrs)",
+        int(forecast_last)
+    )
 
-col3.metric(
-    "Growth %",
-    f"{growth:.2f}%"
-)
+    col3.metric(
+        "Projected Trend",
+        f"{growth:+.1f}%"
+    )
 
-# ----------------------------------------------------
-# Risk Assessment
-# ----------------------------------------------------
-st.subheader("Risk Assessment")
-
-if growth < 0:
-    st.success("🟢 Threat Trend: Decreasing")
-elif growth < 15:
-    st.warning("🟡 Threat Trend: Stable")
-else:
-    st.error("🔴 Threat Trend: Increasing")
+    st.subheader("Risk Trend Assessment")
+    if growth < 0:
+        st.success("🟢 **Threat Trend: Decreasing** — Incident velocity is declining based on historical trajectory.")
+    elif growth < 15:
+        st.warning("🟡 **Threat Trend: Stable** — Incident volume projected to remain approximately steady.")
+    else:
+        st.error("🔴 **Threat Trend: Increasing** — Elevated operational threat projection. Preemptive counter-measures advised.")
 
 # ----------------------------------------------------
 # Download Forecast
 # ----------------------------------------------------
-csv = forecast.to_csv(index=False)
+csv = forecast.to_csv(index=False).encode("utf-8")
 
 st.download_button(
     label="📥 Download Forecast CSV",
     data=csv,
-    file_name=f"{country}_forecast.csv",
+    file_name=f"{country}_forecast_{forecast_years}yr.csv",
     mime="text/csv"
 )
